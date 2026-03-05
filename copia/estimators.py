@@ -6,8 +6,9 @@ from functools import partial
 
 import numpy as np
 import scipy.stats
+import scipy.special as sc
 
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 from copia.bootstrap import bootstrap_abundance_data, bootstrap_incidence_data,\
     bootstrap_shared_species
 from copia.data import AbundanceData, IncidenceData
@@ -628,6 +629,60 @@ def min_add_sample(ds: AbundanceData, solver="grid", search_space=(0, 100, 1e6),
         return n + m
 
 
+def ztnb(ds: AbundanceData):
+    r"""
+    Zero-Truncated Negative Binomial estimate of bias-corrected species richness.
+
+    Parameters
+    ----------
+    ds : AbundanceData
+        An object containing the observed abundances for each individual species.
+
+    Returns
+    -------
+    richness : float
+        Estimate of the bias-corrected species richness (:math:`S + \hat{f_0}`) with:
+
+        .. math::
+            \hat{f_0} = S \cdot \frac{p^r}{1 - p^r}
+
+        With:
+            - :math:`S` = the observed number of distinct species.
+            - :math:`r`, :math:`p` = parameters of the Negative Binomial distribution
+              fitted via Maximum Likelihood Estimation.
+
+    References
+    ----------
+    - J. Green, F. McIntyre, & P. Needham, 'The Shape of Incunable Survival 
+      and Statistical Estimation of Lost Editions', The Papers of the 
+      Bibliographical Society of America (2011), 141-218.
+    """
+    counts = ds.counts
+    S_obs = ds.S_obs
+
+    def loglik(params):
+        r, p = params
+        if r <= 0 or p <= 0 or p >= 1:
+            return np.inf
+        # PMF of NB for k counts
+        log_pmf = (sc.gammaln(r + counts) - sc.gammaln(r) - sc.gammaln(counts + 1)) + \
+                   r * np.log(p) + counts * np.log(1 - p)
+        # Adjustment for zero-truncation
+        p0 = p ** r
+        return -np.sum(log_pmf - np.log(1 - p0))
+
+    # Fit the distribution
+    res = minimize(loglik, [1.0, 0.5], bounds=[(0.001, None), (0.001, 0.999)])
+    r_fit, p_fit = res.x
+    
+    # Estimate f0 and total richness
+    p0 = p_fit ** r_fit
+    f0 = S_obs * (p0 / (1 - p0))
+    S_est = S_obs + f0
+
+    return S_est
+
+
 ESTIMATORS = {
     "chao1": chao1,
     "ichao1": iChao1,
@@ -636,6 +691,7 @@ ESTIMATORS = {
     "minsample": min_add_sample,
     "ace": ace,
     "chao_shared": chao_shared,
+    "ztnb": ztnb,
 }
 
 
@@ -709,4 +765,4 @@ def diversity(
 
 __all__ = ['chao1', 'iChao1', 'egghe_proot',
            'ace', 'jackknife', 'min_add_sample',
-           'diversity', 'chao_shared']
+           'diversity', 'chao_shared', 'ztnb']
