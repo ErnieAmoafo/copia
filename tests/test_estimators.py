@@ -125,6 +125,36 @@ def test_iChao1():
     assert np.isclose(copia.estimators.iChao1(ds), 290.9, rtol=0.01)
 
 
+def test_ztnb():
+    """
+    Test the Zero-Truncated Negative Binomial (ztnb) estimator.
+    Ensures that the optimization runs stably and returns a richness 
+    greater than the observed count.
+    """
+    # Test 1: Simple array
+    x = np.array([1, 1, 1, 2, 3, 5, 10, 25])
+    ds = to_copia_dataset(x, input_type="counts")
+    
+    estimate = copia.estimators.ztnb(ds)
+    # The estimated richness must logically be higher than observed species
+    assert estimate > ds.S_obs
+    assert isinstance(estimate, float)
+
+    # Test 2: Copia's standard "spider_girdled" dataset
+    spider_girdled = np.array([46, 22, 17, 15, 15, 9, 8, 6, 6, 4, 2, 2,
+                      2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.int64)
+    ds_spider = to_copia_dataset(spider_girdled, input_type="counts")
+    
+    spider_estimate = copia.estimators.ztnb(ds_spider)
+    # Check that it evaluates successfully
+    assert spider_estimate > ds_spider.S_obs
+    
+    # Test 3: Wrapper test
+    # Ensure it works when called through the diversity() wrapper
+    wrapper_estimate = copia.estimators.diversity(ds_spider, method='ztnb')
+    assert np.isclose(spider_estimate, wrapper_estimate)
+
+
 def test_minsample():
     # example from the appendix to the original paper:
     # ref: https://figshare.com/articles/dataset/Supplement_1_Excel-sheet_calculator_and_calculator_instructions_/3530930?backTo=/collections/Sufficient_sampling_for_asymptotic_minimum_species_richness_estimators/3300935
