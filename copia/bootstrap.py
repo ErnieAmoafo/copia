@@ -292,16 +292,14 @@ def bootstrap_shared_species(s1, s2, fn, n_iter=1000, conf=0.95, **kwargs):
     lci = np.zeros_like(orig_est)
     uci = np.zeros_like(orig_est)
     
-    # # For total shared (index 0):
-    # var_ratio = est_sd[1]**2 / (est_mean[1] - shared_obs)**2 
-    # R = np.exp(z_score * np.sqrt(np.log(1 + var_ratio)))
-    # lci[0] = shared_obs + (orig_est[0] - shared_obs) / R
-    # uci[0] = shared_obs + (orig_est[0] - shared_obs) * R
-    
-    # # For other components: symmetric intervals
-    # lci[1:] = orig_est[1:] - z_score * est_sd[1:]
-    # uci[1:] = orig_est[1:] + z_score * est_sd[1:]
-
+    # Use percentile CIs for all estimated components
     lci, uci = percentile_ci(estimates, conf)
+
+    # obs_shared (index 1) is an observed count, not an estimate.
+    # Bootstrap resamples systematically undercount shared species,
+    # so percentile CIs are biased downward. Use a symmetric interval
+    # centered on the original point estimate instead.
+    lci[1] = orig_est[1] - z_score * est_sd[1]
+    uci[1] = orig_est[1] + z_score * est_sd[1]
     
     return est_mean, lci, uci, est_sd
