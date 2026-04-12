@@ -705,7 +705,7 @@ def ztnb(ds: AbundanceData):
     parameter_bounds = [(0.001, None), (0.001, 0.999)]
 
     # Fit the distribution using Maximum Likelihood Estimation (MLE)
-    optimization_result = minimize(log_likelihood, initial_guess, bounds=parameter_bounds)
+    optimization_result = minimize(log_likelihood, initial_guess, bounds=parameter_bounds, method = 'L-BFGS-B')
     fitted_dispersion_r, fitted_probability_p = optimization_result.x
     
     # Calculate the estimated probability of zero based on the fitted parameters
@@ -748,11 +748,15 @@ def diversity(
     method : str (default = None)
         One estimator of:
             - 'chao1'
+            - 'chao2'
+            - 'ice'
+            - 'ace'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
             - 'chao_shared'
             - 'empirical' (same as None)
+            - 'ztnb'
     **kwargs : additional parameters passed to selected method
 
     Note
