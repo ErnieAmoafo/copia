@@ -748,9 +748,6 @@ def diversity(
     method : str (default = None)
         One estimator of:
             - 'chao1'
-            - 'chao2'
-            - 'ice'
-            - 'ace'
             - 'egghe_proot'
             - 'jackknife'
             - 'minsample'
